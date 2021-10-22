@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="../static/css/bootstrap.min.css" rel="stylesheet">
+    <!-- <link href="../static/css/jquery-ui.min.css" rel="stylesheet"> -->
+
+    <script type="text/javascript" src="../static/js/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" src="../static/js/bootstrap.min.js"></script>
+    <!-- <script type="text/javascript" src="../static/js/jquery-ui.min.js"></script> -->
+    
+    <script type="text/javascript" src="../static/js/jquery.range.js"></script>
+    <link rel="stylesheet" href="../static/css/jquery.range.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.bundle.min.js" integrity="sha512-vBmx0N/uQOXznm/Nbkp7h0P1RfLSj0HQrFSzV8m7rOGyj30fYAOKHYvCNez+yM8IrfnW0TCodDEjRqf6fodf/Q==" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.css" integrity="sha512-/zs32ZEJh+/EO2N1b0PEdoA10JkdC3zJ8L5FTiQu82LR9S/rOQNfQN7U59U9BC12swNeRAz3HSzIL2vpp4fv3w==" crossorigin="anonymous" />
+
+    <!-- <script type="text/javascript" src="hist_page.js"></script> -->
+    <title>Document</title>
+
+
+</head>
+<body class="alert-secondary">
+    <nav class="navbar navbar-default bg-dark">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <h3 style="color: azure;"><b>人流度分析</b></h3>
+            </div>
+        </div>
+    </nav>
+    <!--ラズパイIDフォーム-->
+    <div class="container">
+    <div class="row align-items-center alert-info border" style="height: 100%;">
+    <div class="col-lg-3" style="text-align: center; ">
+    <form action="/" method="post">
+        <label for="where">センサーID選択</label>
+        <select name="where">
+            {%for i in rasp_id%}
+                <option value="{{ i }}">{{ i }}</option>
+            {%endfor%}
+        </select>
+        <button type="submit">選択</button>
+    </form>
+    <!--２層目年月日フォーム-->
+    {%if where%}
+        <h4>選択ID：{{where}}</h4>
+        </div>
+        <div class="col-lg-4" style="text-align: center; ">
+        <form action="/" method="post">
+            <label for="when">調べたい年月日を選択</label>
+            <select name="when">
+                {%for i in drop_when%}
+                    <option value="{{ i }}">{{ i }}</option>
+                {%endfor%}
+            </select>
+            <button type="submit">選択</button>
+        </form>
+        <!--3層目開始終了時間-->
+        {%if when%}
+            <h4>表示日時：{{when}}</h4>
+            </div>
+            <div class="col-lg-2" style="text-align: center; ">
+            <form action="/" method="post">
+                <label for="start_time">開始時間</label>
+                <select name="start_time">
+                    {%for i in time_list%}
+                        <option value="{{ i }}">{{i}}</option>
+                    {%endfor%}
+                </select>
+                <label for="fin_time">終了時間</label>
+                <select name="fin_time">
+                    {%for i in time_list%}
+                        <option value="{{ i }}">{{i}}</option>
+                    {%endfor%}
+                </select>
+                <button type="submit">選択</button>
+            </form>
+            </div>
+            
+        {%endif%}
+            
+    {%endif%}
+    <!--関数ボタンとグラフ描画-->
+    <div class="col" style="text-align: center; ">
+    <input type="button" value="0:00〜23:59" onclick="onButton24();">
+    <input type="button" value="9:00〜18:00" onclick="onButton9_18();">
+    <input type="button" value="18:00〜24:00" onclick="onButton18_24();">
+    </div>
+    </div>
+    </div>
+
+    <div class="container bg-light">
+    <canvas id="myChart" style="position: relative; height:100%; width:38%;"></canvas>
+    </div>
+    <div class="container">
+        <div class="row " style="height: 100%;">
+            <div class="col-lg-6 bg-light border">
+                <b>選択日：</b>{{when}}<br>
+                <b>最大反応回数：</b>{{max_score}}回<br>
+                <b>平均値：</b>{{mean_thing}}回<br>
+                <b>合計値：</b>{{all_sum_thing}}回<br>
+                <b>上位反応時間(上位75%以上)：</b><br>
+                {%for i in count_75%}
+                    「{{i}}」
+                {%endfor%}<br>
+                <b>下位反応時間(下位25%以下)：</b><br>
+                {%for i in count_25%}
+                    「{{i}}」
+                {%endfor%}<br>
+                <b>混雑時間：</b><br>
+                {%for i in think_list%}
+                    「{{i[0]}}~{{i[1]}}」
+                {%endfor%}<br>
+            </div>
+            <div class="col-lg-6 bg-light border">
+                <b>比較日：</b>{{zen_when}}<br>
+                <b>最大反応回数：</b>{{zen_max_score}}回<br>
+                <b>平均値：</b>{{zen_mean_thing}}回<br>
+                <b>合計値：</b>{{zen_all_sum_thing}}回<br>
+                <b>上位反応時間(上位75%以上)：</b><br>
+                {%for i in zen_count_75%}
+                    「{{i}}」
+                {%endfor%}<br>
+                <b>下位反応時間(下位25%以下)：</b><br>
+                {%for i in zen_count_25%}
+                    「{{i}}」
+                {%endfor%}<br>
+                <b>混雑時間：</b><br>
+                {%for i in zen_think_list%}
+                  {%if i == "None"%}
+                    「None」
+                  {%else%}
+                    「{{i[0]}}~{{i[1]}}」
+                  {%endif%}
+                {%endfor%}<br>
+                
+            </div>
+        </div>
+    </div>
+    <script>
+        var ctx = document.getElementById("myChart");
+        var myChart = new Chart(ctx, {
+          //線グラフ
+          type: "line",
+          //データ
+          data: {
+            //各データの時間
+            labels: ['00:00', '00:15', '00:30', '00:45', '01:00', '01:15', '01:30', '01:45', '02:00', '02:15', '02:30', '02:45', '03:00', '03:15', '03:30', '03:45', '04:00', '04:15', '04:30', '04:45', '05:00', '05:15', '05:30', '05:45', '06:00', '06:15', '06:30', '06:45', '07:00', '07:15', '07:30', '07:45', '08:00', '08:15', '08:30', '08:45', '09:00', '09:15', '09:30', '09:45', '10:00', '10:15', '10:30', '10:45', '11:00', '11:15', '11:30', '11:45', '12:00', '12:15', '12:30', '12:45', '13:00', '13:15', '13:30', '13:45', '14:00', '14:15', '14:30', '14:45', '15:00', '15:15', '15:30', '15:45', '16:00', '16:15', '16:30', '16:45', '17:00', '17:15', '17:30', '17:45', '18:00', '18:15', '18:30', '18:45', '19:00', '19:15', '19:30', '19:45', '20:00', '20:15', '20:30', '20:45', '21:00', '21:15', '21:30', '21:45', '22:00', '22:15', '22:30', '22:45', '23:00', '23:15', '23:30', '23:45'],
+            //データセット
+            datasets: [
+              {
+                label: "反応回数",
+                data: {{list_count}},
+                borderColor: "rgba(255, 99, 132, 1)", //線の色
+                backgroundColor: "rgba(255, 99, 132, 0.1)" //塗りつぶしの色
+              }
+            ]
+          },
+          //グラフ設定
+          options: {
+            //凡例は非表示
+            legend: {
+              display: false
+            },
+            scales: {
+              //X軸
+              xAxes: [
+                {
+                  //軸ラベル表示
+                  scaleLabel: {
+                    display: true,
+                    labelString: "時間"
+                  },
+                  //ここで軸を時間を設定する
+                  type: "time",
+                  time: {
+                    parser: "hh:mm",
+                    unit: "hour",
+                    stepSize: 1,
+                    displayFormats: {
+                      hour: "HH:mm"
+                    }
+                  },
+                  //X軸の範囲を指定
+                  ticks: {
+                    min: "00:00",
+                    max: "24:00"
+                  }
+                }
+              ],
+              //Y軸
+              yAxes: [
+                {
+                  //軸ラベル表示
+                  scaleLabel: {
+                    display: true,
+                    labelString: "反応回数"
+                  },
+                  //Y軸の範囲を指定
+                  ticks: {
+                    min: 0,
+                    max: 200
+                  }
+                }
+              ]
+            }
+          }
+        });
+        
+        //0:00〜23:59
+        function onButton24() {
+          myChart.options.scales.xAxes[0].ticks.min = "00:00";
+          myChart.options.scales.xAxes[0].ticks.max = "23:59";
+          myChart.update();
+        }
+        
+        //9:00〜18:00
+        function onButton9_18() {
+          myChart.options.scales.xAxes[0].ticks.min = "09:00";
+          myChart.options.scales.xAxes[0].ticks.max = "18:00";
+          myChart.update();
+        }
+
+        //18:00〜18:00
+        function onButton18_24() {
+            myChart.options.scales.xAxes[0].ticks.min = "18:00";
+            myChart.options.scales.xAxes[0].ticks.max = "23:59";
+            myChart.update();
+        }
+
+        
+    </script>
+    {%if start_time%}
+        {%if fin_time%}
+        <script>
+            function onButton_your(st_ti,fi_ti){
+                myChart.options.scales.xAxes[0].ticks.min = st_ti;
+                myChart.options.scales.xAxes[0].ticks.max = fi_ti;
+                myChart.update();
+            }
+            onButton_your("{{start_time}}","{{fin_time}}");
+        </script>
+        {%endif%}
+    {%endif%}
+
+    <div class="container">
+      <div class="row " style="height: 100%;">
+        <div class="col bg-light border">
+          <br>
+          <input type="hidden" class="single-slider" value="0" />
+          <span id="get_label_time"></span>
+          <br>
+        </div>
+      </div>
+    </div>
+    <!-- <span id="bucketSize" style="color:#999; font-size: 15px; text-decoration: none;"></span> -->
+    <!-- <script src="../static/js/jquery.range.js"></script> -->
+    <script type="text/javascript">
+   //   $(document).ready(function(){
+      //  $('.single-slider').jRange({
+         //   from: 0,
+         //   to: 95,
+        //    step: 1,
+        //    scale: ['00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'],
+         //   //format: '%s',
+        //    return: true,
+        //    width: 1200,
+         //   showLabels: true,
+        //    snap: true,
+         //   //onstatechange: function(value){console.log(value);}
+        //    onstatechange: $(".single-slider").trigger('change')
+        //});
+        //$('.range-slider').val()
+        //デベロッパーツール
+        //console.log($('.range-slider').val());
+    //});
+    $('.single-slider').jRange({
+      from: 0,
+      to: 95,
+      step: 1,
+      scale: ['00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'],
+      //format: '%s',
+      return: true,
+      width: 1200,
+      showLabels: true,
+      snap: true,
+      //onstatechange: function(value){console.log(value);}
+      onstatechange: $(".single-slider").trigger('change')
+  });
+  
+    </script>
+    
+    <script type="text/javascript">
+      //console.log(count_slide)
+    </script>
+
+    <br>
+    <div class="container">
+      <div class="row " style="height: 100%;">
+        <div class="col-lg-12 border" style="text-align: center; ">
+      <canvas id="board" width="460" height="460"></canvas>
+    </div>
+    </div>
+    </div>
+
+    <script type="text/javascript">
+      //$(function get_slide() {
+      //var gen_gb = 255
+        // 初期
+        //$('#bucketSize').html($('.single-slider').val());
+      $('.single-slider').on('input change', function make() {
+        // 変動
+        var gen_gb = 0;
+        $('#bucketSize').html($(this).val());
+        var list_count = {{list_count}};
+        var count_slide = list_count[$(this).val()];
+        console.log(count_slide);
+
+        console.log(gen_gb);
+        if(parseInt(count_slide,10) == 0){
+          gen_gb = 0;
+        }else if (parseInt(count_slide,10) <= 20){
+          gen_gb = 1/10;
+        }else if (parseInt(count_slide,10) <= 40){
+          gen_gb = 2/10;
+        }else if (parseInt(count_slide,10) <= 60){
+          gen_gb = 3/10;
+        }else if (parseInt(count_slide,10) <= 80){
+          gen_gb = 0.4;
+        }else if (parseInt(count_slide,10) <= 100){
+          gen_gb = 0.5;
+        }else if (parseInt(count_slide,10) <= 120){
+          gen_gb = 0.6;
+        }else if (120 < parseInt(count_slide,10) <= 140){
+          gen_gb = 0.7;
+        }else if (140 < parseInt(count_slide,10) <= 160){
+          gen_gb = 0.8;
+        }else if (160 < parseInt(count_slide,10)){
+          gen_gb = 0.9;
+        }
+        console.log(gen_gb);
+        
+        //console.log("rgba(100,${gen_gb},${gen_gb},0.5)")
+        const board = document.querySelector("#board");
+      const ctx = board.getContext("2d");
+      const chara = new Image();
+      chara.src="../static/image/room_miraisouzou.jpg";
+      console.log("rgba(100,0,0,"+gen_gb+")");
+      chara.onload = ()=>{
+        ctx.fillStyle = "rgba(100,0,0,"+gen_gb+")";
+        ctx.arc(250, 200, 80, 0, 2*Math.PI, false);
+        ctx.drawImage(chara, 0, 0, 512, 384);
+        ctx.fill();
+      };
+
+      });
+      //});
+    </script>
+    
+    <!-- <script>
+      var get_label_time = document.getElementById("get_label_time");
+      get_label_time.innerHTML = document.write($('.single-slider').val());
+      
+    </script> -->
+
+</body>
+</html>

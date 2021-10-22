@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <form action="/" method="post">
+        <label for="where">調べたい年月日を入力</label>
+        <input type="text" name="where">
+        <button type="submit">入力する</button>
+    </form>
+    {% if where %}
+        {{where}}
+        <form action="/" method="post">
+            <label for="when">調べたい年月日を入力</label>
+            <input type="text" name="when">
+            <button type="submit">入力する</button>
+        </form>
+        {% if when %}
+            {{when}}
+            <form action="/" method="post">
+                <label for="time">調べたい年月日を入力</label>
+                <input type="text" name="time">
+                <button type="submit">入力する</button>
+            </form>
+        {% endif %}
+    {% endif %}
+    
+</body>
+</html>
