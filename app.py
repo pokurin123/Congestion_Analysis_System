@@ -10,11 +10,11 @@ app = Flask(__name__)
 app.secret_key = os.urandom(32)
 
 conn = psycopg2.connect(\
-    "host=192.168.10.106\
-    port=5432 \
+    "host=XXXX\
+    port=XXXX \
     dbname=test_db \
-    user=pi \
-    password=dbpasswd"\
+    user=XXXX \
+    password=XXXX"\
         )
 
 #グラフ用15分区切り
